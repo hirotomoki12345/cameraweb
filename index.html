@@ -13,6 +13,7 @@
   <script>
     let mediaRecorder;
     let recordedChunks = [];
+    let recordingTimeout;
 
     window.onload = () => {
       const video = document.querySelector("#camera");
@@ -56,12 +57,15 @@
         mediaRecorder.start();
         startRecordingButton.disabled = true;
         stopRecordingButton.disabled = false;
+
+        // 5秒後に録画を停止
+        recordingTimeout = setTimeout(() => {
+          stopRecording();
+        }, 5000);
       });
 
       stopRecordingButton.addEventListener("click", () => {
-        mediaRecorder.stop();
-        startRecordingButton.disabled = false;
-        stopRecordingButton.disabled = true;
+        stopRecording();
       });
 
       playRecordingButton.addEventListener("click", () => {
@@ -75,6 +79,15 @@
           document.body.appendChild(videoPlayer);
         }
       });
+
+      function stopRecording() {
+        if (mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+          startRecordingButton.disabled = false;
+          stopRecordingButton.disabled = true;
+          clearTimeout(recordingTimeout);
+        }
+      }
     };
   </script>
 </body>
