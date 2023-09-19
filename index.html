@@ -10,11 +10,9 @@
   <button id="startRecording">録画開始</button>
   <button id="stopRecording" disabled>録画停止</button>
   <button id="playRecording" disabled>再生</button>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cloudinary/2.13.0/cloudinary.min.js"></script>
   <script>
     let mediaRecorder;
     let recordedChunks = [];
-    let cameraFolder = 'camera';
 
     window.onload = () => {
       const video = document.querySelector("#camera");
@@ -31,14 +29,6 @@
         }
       };
 
-      const cloudinaryApiKey = '965591649852323';
-      const cloudinaryCloudName = 'dxzsajngl';
-
-      cloudinary.config({
-        cloud_name: cloudinaryCloudName,
-        api_key: cloudinaryApiKey
-      });
-
       navigator.mediaDevices.getUserMedia(constraints)
         .then((stream) => {
           video.srcObject = stream;
@@ -53,31 +43,8 @@
           mediaRecorder.onstop = () => {
             const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(recordedBlob);
-            
-            // ファイル名を生成
-            const timestamp = new Date().getTime();
-            const filename = `${cameraFolder}/${timestamp}.webm`;
-            
-            // ローカルストレージに保存
-            localStorage.setItem('recordedVideo', filename);
-            
-            // Cloudinaryにアップロード
-            cloudinary.v2.uploader.upload(url, {
-              public_id: filename,
-              resource_type: 'video',
-              eager: [
-                { width: 640, height: 480, crop: 'pad' }
-              ]
-            }, (error, result) => {
-              if (error) {
-                console.error('Cloudinaryへのアップロードに失敗しました:', error);
-              } else {
-                console.log('Cloudinaryにアップロードが成功しました:', result);
-                // 成功したらローカルストレージから削除
-                localStorage.removeItem('recordedVideo');
-                playRecordingButton.disabled = false;
-              }
-            });
+            localStorage.setItem('recordedVideo', url);
+            playRecordingButton.disabled = false;
           };
         })
         .catch((err) => {
