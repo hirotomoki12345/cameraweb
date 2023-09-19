@@ -7,6 +7,13 @@
     canvas, video {
       border: 1px solid gray;
     }
+    .image-list {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .image-item {
+      margin: 10px;
+    }
   </style>
 </head>
 <body>
@@ -15,23 +22,31 @@
   <canvas id="picture" width="300" height="200"></canvas>
   <form>
     <button type="button" id="shutter">シャッター</button>
+    <button type="button" id="startRecording">録画開始</button>
+    <button type="button" id="stopRecording">録画停止</button>
   </form>
+  <div class="image-list" id="imageList"></div>
   <audio id="se" preload="auto">
     <source src="camera-shutter1.mp3" type="audio/mp3">
   </audio>
   <script>
+    let mediaRecorder;
+    const recordedChunks = [];
+    const imageList = document.querySelector("#imageList");
+
     window.onload = () => {
       const video  = document.querySelector("#camera");
       const canvas = document.querySelector("#picture");
       const se     = document.querySelector('#se');
-      
+      const startRecordingButton = document.querySelector("#startRecording");
+      const stopRecordingButton = document.querySelector("#stopRecording");
+
       const constraints = {
         audio: false,
         video: {
           width: 300,
           height: 200,
-          facingMode: "user"  // フロントカメラを利用する
-          // facingMode: { exact: "environment" }  // リアカメラを利用する場合
+          facingMode: "user"
         }
       };
 
@@ -41,6 +56,8 @@
           video.onloadedmetadata = (e) => {
             video.play();
           };
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = handleDataAvailable;
         })
         .catch((err) => {
           console.log(err.name + ": " + err.message);
@@ -54,8 +71,52 @@
           video.play();
         }, 500);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        saveImage(canvas.toDataURL("image/png"));
+        displayImages();
       });
+
+      startRecordingButton.addEventListener("click", () => {
+        recordedChunks.length = 0;
+        mediaRecorder.start();
+        startRecordingButton.disabled = true;
+        stopRecordingButton.disabled = false;
+      });
+
+      stopRecordingButton.addEventListener("click", () => {
+        mediaRecorder.stop();
+        startRecordingButton.disabled = false;
+        stopRecordingButton.disabled = true;
+      });
+
+      displayImages();
     };
+
+    function handleDataAvailable(event) {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    }
+
+    function saveImage(imageData) {
+      // ローカルストレージに画像データを保存
+      const timestamp = new Date().getTime();
+      localStorage.setItem(`image_${timestamp}`, imageData);
+    }
+
+    function displayImages() {
+      // ローカルストレージから保存された画像を表示
+      imageList.innerHTML = '';
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('image_')) {
+          const imageData = localStorage.getItem(key);
+          const img = document.createElement('img');
+          img.src = imageData;
+          img.classList.add('image-item');
+          imageList.appendChild(img);
+        }
+      }
+    }
   </script>
 </body>
 </html>
